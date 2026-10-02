@@ -1,0 +1,55 @@
+name: Deploy slides to GitHub Pages
+
+# Every push to main and every published release rebuilds the deck and
+# redeploys the public page. It can also be run by hand from the Actions tab.
+on:
+  push:
+    branches: [main]
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: deck
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: deck/package-lock.json
+      - run: npm ci
+      - name: Build deck
+        run: npx open-slide build
+        env:
+          # Pages serves the site from /<repo>/.
+          OPEN_SLIDE_BASE: /${{ github.event.repository.name }}/
+      - name: SPA fallback for deep links
+        run: cp dist/index.html dist/404.html && touch dist/.nojekyll
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: deck/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
