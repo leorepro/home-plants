@@ -37,8 +37,10 @@ jobs:
         env:
           # Pages serves the site from /<repo>/.
           OPEN_SLIDE_BASE: /${{ github.event.repository.name }}/
-      - name: SPA fallback for deep links
-        run: cp dist/index.html dist/404.html && touch dist/.nojekyll
+      - name: Single-deck site (redirects + deep-link fallback)
+        run: node scripts/single-deck.cjs
+        env:
+          OPEN_SLIDE_BASE: /${{ github.event.repository.name }}/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
